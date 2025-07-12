@@ -15,6 +15,13 @@ pub struct UnixClock {
 }
 
 impl UnixClock {
+    pub fn from_clockid(clockid: libc::clockid_t) -> Self {
+        Self {
+            clock: clockid,
+            fd: None
+        }
+    }
+
     /// The standard realtime clock on unix systems.
     ///
     /// ```no_run
@@ -52,6 +59,23 @@ impl UnixClock {
     #[cfg(target_os = "linux")]
     pub const CLOCK_TAI: Self = UnixClock {
         clock: libc::CLOCK_TAI,
+        fd: None,
+    };
+
+    pub const CLOCK_MONOTONIC: Self = UnixClock {
+        clock: libc::CLOCK_MONOTONIC,
+        fd: None,
+    };
+
+    #[cfg(target_os = "linux")]
+    pub const CLOCK_MONOTONIC_RAW: Self = UnixClock {
+        clock: libc::CLOCK_MONOTONIC_RAW,
+        fd: None,
+    };
+
+    #[cfg(target_os = "linux")]
+    pub const CLOCK_MONOTONIC_COARSE: Self = UnixClock {
+        clock: libc::CLOCK_MONOTONIC_COARSE,
         fd: None,
     };
 
