@@ -199,7 +199,7 @@ impl UnixClock {
         // ntp_adjtime only drives the system realtime clock. Report other
         // clocks as unsupported instead of panicking, so that read-only
         // callers such as `now()` fall back to `clock_gettime`.
-        #[cfg(any(target_os = "freebsd", target_os = "macos"))]
+        #[cfg(target_os = "macos")]
         if self.clock != libc::CLOCK_REALTIME {
             return Err(Error::NotSupported);
         }
