@@ -18,7 +18,8 @@ impl UnixClock {
     pub fn from_clockid(clockid: libc::clockid_t) -> Self {
         Self {
             clock: clockid,
-            fd: None
+            #[cfg(target_os = "linux")]
+            fd: None,
         }
     }
 
@@ -64,6 +65,7 @@ impl UnixClock {
 
     pub const CLOCK_MONOTONIC: Self = UnixClock {
         clock: libc::CLOCK_MONOTONIC,
+        #[cfg(target_os = "linux")]
         fd: None,
     };
 
@@ -192,6 +194,14 @@ impl UnixClock {
             );
 
             libc::ntp_adjtime(buf)
+        }
+
+        // ntp_adjtime only drives the system realtime clock. Report other
+        // clocks as unsupported instead of panicking, so that read-only
+        // callers such as `now()` fall back to `clock_gettime`.
+        #[cfg(any(target_os = "freebsd", target_os = "macos"))]
+        if self.clock != libc::CLOCK_REALTIME {
+            return Err(Error::NotSupported);
         }
 
         if unsafe { adjtime(self.clock, timex) } == -1 {
@@ -835,5 +845,15 @@ mod tests {
         let resolution = UnixClock::CLOCK_REALTIME.resolution().unwrap();
 
         assert_ne!(resolution, Timestamp::default());
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn uptime_raw_clock_reads_on_macos() {
+        use crate::Clock;
+        let c = UnixClock::from_clockid(libc::CLOCK_UPTIME_RAW);
+        let t1 = c.now().unwrap();
+        let t2 = c.now().unwrap();
+        assert!((t2.seconds, t2.nanos) >= (t1.seconds, t1.nanos));
     }
 }
